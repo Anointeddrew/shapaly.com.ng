@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Shapaly – Email Verification</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black: #0a0a0a;
+      --white: #f5f3ee;
+      --accent: #c8f55a;
+      --muted: #888;
+      --card-bg: #141414;
+    }
+
+    body {
+      background-color: var(--black);
+      color: var(--white);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow: hidden;
+    }
+
+    /* Background blobs */
+    .bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.18;
+    }
+    .blob1 { width: 400px; height: 400px; background: var(--accent); top: -100px; right: -100px; animation: drift 8s ease-in-out infinite alternate; }
+    .blob2 { width: 300px; height: 300px; background: #4af0c4; bottom: -80px; left: -80px; animation: drift 10s ease-in-out infinite alternate-reverse; }
+
+    @keyframes drift {
+      from { transform: translate(0, 0) scale(1); }
+      to   { transform: translate(30px, 20px) scale(1.08); }
+    }
+
+    .card {
+      position: relative;
+      z-index: 1;
+      background: var(--card-bg);
+      border: 1px solid #252525;
+      border-radius: 24px;
+      padding: 48px 40px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      box-shadow: 0 32px 80px rgba(0,0,0,0.5);
+      animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 28px;
+      letter-spacing: -0.5px;
+      margin-bottom: 32px;
+      display: inline-block;
+    }
+    .logo span { color: var(--accent); }
+
+    .icon-wrap {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      margin: 0 auto 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      transition: transform 0.3s ease;
+    }
+    .icon-wrap.pending  { background: #1e1e1e; border: 2px solid #333; }
+    .icon-wrap.success  { background: rgba(200,245,90,0.12); border: 2px solid var(--accent); animation: pop 0.4s cubic-bezier(0.16,1,0.3,1); }
+    .icon-wrap.error    { background: rgba(255,80,80,0.1); border: 2px solid #ff5050; }
+
+    @keyframes pop {
+      0%   { transform: scale(0.6); }
+      70%  { transform: scale(1.15); }
+      100% { transform: scale(1); }
+    }
+
+    h1 {
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 22px;
+      margin-bottom: 12px;
+      letter-spacing: -0.3px;
+    }
+
+    p {
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 28px;
+    }
+
+    .btn {
+      display: inline-block;
+      background: var(--accent);
+      color: var(--black);
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      padding: 14px 32px;
+      border-radius: 100px;
+      text-decoration: none;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.2s;
+      letter-spacing: 0.2px;
+    }
+    .btn:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn:active { transform: scale(0.97); }
+    .btn.secondary {
+      background: transparent;
+      border: 1.5px solid #333;
+      color: var(--white);
+      margin-top: 12px;
+    }
+
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #2a2a2a;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .footer {
+      position: relative;
+      z-index: 1;
+      margin-top: 24px;
+      font-size: 13px;
+      color: #444;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="bg">
+    <div class="blob blob1"></div>
+    <div class="blob blob2"></div>
+  </div>
+
+  <div class="card" id="card">
+    <div class="logo">Sha<span>p</span>aly</div>
+
+    <!-- LOADING STATE -->
+    <div id="state-loading">
+      <div class="icon-wrap pending"><div class="spinner"></div></div>
+      <h1>Verifying your email…</h1>
+      <p>Please wait a moment.</p>
+    </div>
+
+    <!-- SUCCESS STATE -->
+    <div id="state-success" style="display:none">
+      <div class="icon-wrap success">✓</div>
+      <h1>Email Verified!</h1>
+      <p>Your email has been successfully verified. You can now return to the Shapaly app.</p>
+      <a href="#" class="btn" id="open-app-btn">Open Shapaly App</a>
+      <br/>
+      <a href="#" class="btn secondary" id="retry-btn" style="display:none">Try Again</a>
+    </div>
+
+    <!-- ERROR STATE -->
+    <div id="state-error" style="display:none">
+      <div class="icon-wrap error">✕</div>
+      <h1>Verification Failed</h1>
+      <p id="error-msg">The verification link has expired or is invalid. Please request a new one from the app.</p>
+      <a href="#" class="btn secondary" id="back-btn">Back to App</a>
+    </div>
+  </div>
+
+  <div class="footer">© 2026 Shapaly. All rights reserved.</div>
+
+  <script>
+    const APP_SCHEME = 'anointeddrewapp';
+
+    function getParam(name) {
+      return new URLSearchParams(window.location.search).get(name);
+    }
+
+    function openApp(path) {
+      // Try deep link into app
+      window.location.href = `${APP_SCHEME}://${path}`;
+    }
+
+    function show(id) {
+      ['state-loading','state-success','state-error'].forEach(s => {
+        document.getElementById(s).style.display = s === id ? 'block' : 'none';
+      });
+    }
+
+    async function handleVerification() {
+      const mode    = getParam('mode');
+      const oobCode = getParam('oobCode');
+      const apiKey  = getParam('apiKey');
+
+      if (!oobCode || mode !== 'verifyEmail') {
+        show('state-error');
+        document.getElementById('error-msg').textContent =
+          'Invalid or missing verification link. Please request a new one from the app.';
+        document.getElementById('back-btn').addEventListener('click', e => {
+          e.preventDefault();
+          openApp('home');
+        });
+        return;
+      }
+
+      try {
+        // Call Firebase REST API to apply the action code
+        const res = await fetch(
+          `https://identitytoolkit.googleapis.com/v1/accounts:update?key=${apiKey}`,
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ oobCode })
+          }
+        );
+
+        const data = await res.json();
+
+        if (data.error) throw new Error(data.error.message);
+
+        // Success!
+        show('state-success');
+
+        document.getElementById('open-app-btn').addEventListener('click', e => {
+          e.preventDefault();
+          openApp(`verified?oobCode=${oobCode}`);
+        });
+
+        // Auto-open app after 2 seconds
+        setTimeout(() => openApp(`verified?oobCode=${oobCode}`), 2000);
+
+      } catch (err) {
+        show('state-error');
+        const msg = err.message || '';
+        if (msg.includes('EXPIRED')) {
+          document.getElementById('error-msg').textContent =
+            'This verification link has expired. Please request a new one from the app.';
+        } else if (msg.includes('INVALID')) {
+          document.getElementById('error-msg').textContent =
+            'This verification link is invalid or already used.';
+        }
+        document.getElementById('back-btn').addEventListener('click', e => {
+          e.preventDefault();
+          openApp('home');
+        });
+      }
+    }
+
+    handleVerification();
+  </script>
+</body>
+</html>
